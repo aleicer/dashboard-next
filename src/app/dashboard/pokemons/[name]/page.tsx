@@ -2,21 +2,28 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Pokemon } from "@/pokemons";
+import { PokemonResponse } from "@/pokemons";
 
 
 interface Props {
-  params: Promise<{ id: string }>;
+  params: Promise<{ name: string }>;
 }
 
 //! En esta función se pueden generar los paths estáticos en build time
 export async function generateStaticParams() {
-  const static151Pokemons = Array.from({ length: 151 }, (_, index) => `${index + 1}`);
-  return static151Pokemons.map(id => ({ id }));
+  const data: PokemonResponse = await fetch('https://pokeapi.co/api/v2/pokemon?limit=151')
+    .then(res => res.json());
+  const static151Pokemons: string[] = data.results.map((poke) => {
+    const name: string = poke.name;
+    return name;
+  })
+  return static151Pokemons.map(name => ({ name }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  console.log('generateMetadata id page');
   try {
-    const { id: idPokemon } = await params;
+    const { name: idPokemon } = await params;
     const { id, name } = await getPokemon(idPokemon);
 
     return {
@@ -31,9 +38,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-const getPokemon = async (id: string): Promise<Pokemon> => {
+const getPokemon = async (name: string): Promise<Pokemon> => {
+
   try {
-    const pokemon = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`, {
+    const pokemon = await fetch(`https://pokeapi.co/api/v2/pokemon/${name}`, {
       // cache: 'force-cache',
       next: { revalidate: 60 * 60 * 24 } // 24 hours
     })
@@ -45,9 +53,9 @@ const getPokemon = async (id: string): Promise<Pokemon> => {
 }
 
 export default async function PokemonPage({ params }: Props) {
-  const { id } = await params;
+  const { name } = await params;
 
-  const pokemon = await getPokemon(id);
+  const pokemon = await getPokemon(name);
   return (
     <div className="flex mt-5 flex-col items-center text-slate-800">
       <div className="relative flex flex-col items-center rounded-[20px] w-[700px] mx-auto bg-white bg-clip-border  shadow-lg  p-3">
